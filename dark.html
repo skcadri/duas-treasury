@@ -137,6 +137,12 @@ body{font-family:'Cormorant Garamond',Georgia,serif;background:var(--night);colo
   .nav button{padding:14px 16px;font-size:.75rem;letter-spacing:2px}
   .dh{flex-direction:column;gap:4px}
 }
+
+.search-wrap{max-width:760px;margin:14px auto 8px;padding:0 20px;position:relative;z-index:2}
+.search-input{width:100%;padding:10px 14px;border:1px solid rgba(201,168,76,.35);border-radius:12px;background:rgba(255,255,255,.92);color:#2C2418;font-family:'Cormorant Garamond',serif;font-size:1rem;outline:none}
+.search-input:focus{border-color:rgba(201,168,76,.8);box-shadow:0 0 0 3px rgba(201,168,76,.15)}
+.search-hint{font-size:.78rem;opacity:.7;margin-top:6px}
+
 </style>
 </head>
 <body>
@@ -163,6 +169,11 @@ body{font-family:'Cormorant Garamond',Georgia,serif;background:var(--night);colo
 <button data-s="hadith">Hadith</button>
 <button id="themeToggle" class="theme-toggle" title="Switch to Light Mode" style="font-size: 1.1rem; line-height: 1;">☀️</button>
 </nav>
+
+<div class="search-wrap">
+  <input id="duaSearch" class="search-input" type="search" placeholder="Search duas by word, phrase, or source..." autocomplete="off" />
+  <div class="search-hint">Live search (100ms debounce)</div>
+</div>
 <div class="main">
 <div id="sq" class="section active"></div>
 <div id="sh" class="section active"></div>
@@ -248,6 +259,32 @@ document.querySelectorAll('.dua').forEach(el=>obs.observe(el));
     localStorage.setItem('theme', 'light');
     window.location.href = 'index.html';
   });
+</script>
+
+<script>
+(function(){
+  const input=document.getElementById('duaSearch');
+  if(!input) return;
+  const cards=Array.from(document.querySelectorAll('#quran-section .dua-card,#hadith-section .dua-card,#sq .dua,#sh .dua'));
+  const containers=['quran-section','hadith-section','sq','sh'].map(id=>document.getElementById(id)).filter(Boolean);
+  let timer=null;
+  function applyFilter(){
+    const q=input.value.trim().toLowerCase();
+    let visibleByContainer=new Map(containers.map(c=>[c,0]));
+    cards.forEach(card=>{
+      const hit=!q || card.textContent.toLowerCase().includes(q);
+      card.style.display=hit?'':'none';
+      if(hit){
+        for(const c of containers){ if(c.contains(card)){ visibleByContainer.set(c,(visibleByContainer.get(c)||0)+1); break; } }
+      }
+    });
+    containers.forEach(c=>{
+      const cnt=visibleByContainer.get(c)||0;
+      c.style.display=(q && cnt===0)?'none':'';
+    });
+  }
+  input.addEventListener('input',()=>{ clearTimeout(timer); timer=setTimeout(applyFilter,100);});
+})();
 </script>
 </body>
 
