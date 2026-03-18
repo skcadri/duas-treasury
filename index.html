@@ -382,6 +382,16 @@
 .search-hint{font-size:.78rem;opacity:.7;margin-top:6px}
 
 </style>
+
+<style>
+.search-view{padding:20px;max-width:760px;margin:0 auto}
+#dua-search-input{width:100%;padding:12px 16px;font-size:1.1rem;border:2px solid var(--gold-dim);border-radius:8px;background:var(--cream);color:var(--ink);font-family:'Cormorant Garamond',serif}
+#dua-search-input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.2)}
+.search-result{padding:16px;margin-bottom:12px;border-radius:8px;background:var(--cream-dark);border-left:3px solid var(--gold)}
+.search-result .ar{font-size:1.4rem;margin-bottom:8px;color:var(--green-deep)}
+.search-result .tr{font-size:1rem;line-height:1.6;color:var(--ink)}
+.search-result .sr{font-size:.85rem;margin-top:8px;color:var(--ink-light)}
+</style>
 </head>
 <body>
 
@@ -401,13 +411,14 @@
   <button class="active" data-section="all">All</button>
   <button data-section="quran">Quran</button>
   <button data-section="hadith">Hadith</button>
+  <button data-section="search" class="search-tab-btn">🔍</button>
   <button id="themeToggle" class="theme-toggle" title="Switch to Dark Mode" style="font-size: 1.1rem; line-height: 1;">🌙</button>
 </nav>
 
 
-<div class="search-wrap">
-  <input id="duaSearch" class="search-input" type="search" placeholder="Search duas by word, phrase, or source..." autocomplete="off" />
-  <div class="search-hint">Live search (100ms debounce)</div>
+<div id="search-container" class="search-view" style="display:none">
+  <input type="search" id="dua-search-input" placeholder="Search duas..." autocomplete="off" />
+  <div id="search-results"></div>
 </div>
 <main class="container">
   <div class="section-intro">
@@ -559,6 +570,79 @@ document.querySelectorAll('.nav-bar button:not(#themeToggle)').forEach(btn => {
     });
   }
   input.addEventListener('input',()=>{ clearTimeout(timer); timer=setTimeout(applyFilter,100);});
+})();
+</script>
+
+<script>
+// Tab switching with Search support
+document.querySelectorAll('.nav-bar button, .nav button').forEach(btn => {
+  if (btn.id === 'themeToggle') return;
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-bar button, .nav button').forEach(b => { if (b.id !== 'themeToggle') b.classList.remove('active'); });
+    btn.classList.add('active');
+    const sec = btn.dataset.section || btn.dataset.s;
+    
+    // Hide all sections and search by default
+    document.querySelectorAll('.section-content, .search-view, #quran-section, #hadith-section').forEach(el => {
+      if(el) el.style.display = 'none';
+    });
+    const intro = document.querySelector('.section-intro');
+    if(intro) intro.style.display = 'none';
+    
+    if (sec === 'search') {
+      document.getElementById('search-container').style.display = 'block';
+      setTimeout(() => document.getElementById('dua-search-input').focus(), 100);
+    } else {
+      if (sec === 'all' || sec === 'quran') {
+        const q = document.getElementById('quran-section');
+        if(q) { q.style.display = 'block'; q.classList.add('active'); }
+      }
+      if (sec === 'all' || sec === 'hadith') {
+        const h = document.getElementById('hadith-section');
+        if(h) { h.style.display = 'block'; h.classList.add('active'); }
+      }
+      if (intro) intro.style.display = 'block';
+    }
+  });
+});
+
+// Search with 100ms debounce
+(function(){
+  const input = document.getElementById('dua-search-input');
+  if(!input) return;
+  
+  const containers = ['quran-section', 'hadith-section'];
+  let timer = null;
+  
+  function getCards() {
+    return Array.from(document.querySelectorAll('#quran-section .dua-card, #hadith-section .dua-card, #sq .dua, #sh .dua'));
+  }
+  
+  function renderResults(matches) {
+    const res = document.getElementById('search-results');
+    if(!res) return;
+    if(matches.length === 0) {
+      res.innerHTML = '<p style="text-align:center;opacity:.6">No duas found</p>';
+      return;
+    }
+    res.innerHTML = matches.slice(0,20).map(d => `
+      <div class="search-result">
+        <div class="ar">${d.ar || d.querySelector('.arabic, .ar')?.textContent || ''}</div>
+        <div class="tr">${d.t || d.querySelector('.translation, .tr')?.textContent || ''}</div>
+        <div class="sr">${d.s || d.querySelector('.source, .sr')?.textContent || ''}</div>
+      </div>`).join('');
+  }
+  
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const q = input.value.trim().toLowerCase();
+      if(!q) { renderResults([]); return; }
+      const cards = getCards();
+      const matches = cards.filter(c => c.textContent.toLowerCase().includes(q));
+      renderResults(matches);
+    }, 100);
+  });
 })();
 </script>
 </body>
